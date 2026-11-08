@@ -75,11 +75,33 @@ full history in [CHANGELOG.md](CHANGELOG.md)
 
 ## Installation
 
+**Installing this fork:** add `ottenhoff/weather-station-flex-card` as a custom
+repository in HACS / Marketplace, choose **Dashboard**, and install the latest
+release. If you already installed the upstream card, uninstall that entry first;
+both repositories use the same installation folder. Reload your browser after
+installing or updating.
+
 **HACS (recommended):** click the badge above, or add `Ltek/weather-station-flex-card` as a custom repository (category **Dashboard**). Install **Weather Station Flex Card (Ltek)**, then hard-refresh your browser.
 
 Then add **Weather Station Flex Card** from the card picker, choose your weather entity and station under **Data Sources**, and arrange the panels. For a wall display, use a **Panel** view and **Full screen** layout.
 
 It works alongside Weather Flex Card on the same dashboard. Every option is listed in the [configuration reference](docs/CONFIGURATION.md), and [docs/config-examples.md](docs/config-examples.md) has example setups.
+
+## Automatic builds and updates
+
+Push or merge changes to this fork's `main` branch. The **Build and release** GitHub
+Action installs dependencies, builds the card, runs the tests, and publishes a
+numbered release with all four JavaScript files. HACS / Marketplace installs those
+release files, including the editor and libraries. No local build, version edit,
+or manual file upload is needed. Generated bundles do not need to be committed
+when changing source files.
+
+Once the Action finishes successfully, open this repository in HACS / Marketplace
+and install the latest release, then reload your browser. Update checks can take
+time; use **Redownload** in HACS to select the new release when needed.
+
+Pull requests run the build and tests without publishing. To publish again without
+changing code, open **Actions → Build and release → Run workflow** and select `main`.
 
 ---
 

@@ -1,0 +1,75 @@
+name: Build and release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set release version
+        id: version
+        run: |
+          VERSION="$(date -u +%Y.%m.%d).${GITHUB_RUN_NUMBER}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          export RELEASE_VERSION="$VERSION"
+          node --input-type=module <<'JS'
+          import { readFileSync, writeFileSync } from "node:fs";
+          const path = "src/card/constants.js";
+          const source = readFileSync(path, "utf8");
+          writeFileSync(path, source.replace(
+            /export const CARD_VERSION = "[^"]+";/,
+            `export const CARD_VERSION = "${process.env.RELEASE_VERSION}";`,
+          ));
+          JS
+
+      - name: Build and test
+        run: npm test
+
+      - name: Save installable files
+        uses: actions/upload-artifact@v7
+        with:
+          name: card-build
+          path: dist/*.js
+          if-no-files-found: error
+
+  release:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: card-build
+          path: dist
+
+      - name: Publish HACS and Marketplace release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          gh release create "v${VERSION}" dist/*.js \
+            --target "$GITHUB_SHA" \
+            --title "$VERSION" \
+            --generate-notes \
+            --latest

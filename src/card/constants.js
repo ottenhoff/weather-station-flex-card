@@ -1,5 +1,5 @@
-// Single source of truth for the card version (format YYYY.MM.DD.BUILD, see
-// ha-card-build-release.md). publish.py rewrites this line on release.
+// Development version. The release workflow stamps YYYY.MM.DD.RUN before
+// building, so the card and its lazy-loaded files use the same release version.
 export const CARD_VERSION = "2026.11.04.111";
 
 export const CARD_TYPE = "weather-station-flex-card";
