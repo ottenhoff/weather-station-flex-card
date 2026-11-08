@@ -186,8 +186,13 @@ your weather provider.
 
 Use `chart_overlays` to add dew point, feels like, or both alongside temperature and
 precipitation. Dew point uses a solid blue line; feels like uses a dashed purple line.
-Both share the forecast's temperature unit and axis. Missing readings leave gaps;
-metrics with no readings are omitted. Overlays appear only in the hourly temperature /
+Both share the forecast's temperature unit and axis. If the provider omits dew
+point, the card calculates it from that forecast slot's temperature and relative
+humidity using the [Magnus equation](https://www.npl.co.uk/resources/q-a/dew-point-and-relative-humidity).
+The legend marks a line containing calculated readings as **Dew point (calculated)**.
+Provider-supplied dew points take priority. Calculation supports °C, °F, and K,
+with temperatures and calculated dew points between −45 °C and 60 °C. Missing or
+invalid inputs leave gaps; metrics with no usable readings are omitted. Overlays appear only in the hourly temperature /
 precipitation view and do not affect daily forecasts or other chart views.
 
 ```yaml

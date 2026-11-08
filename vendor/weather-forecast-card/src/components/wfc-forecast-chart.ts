@@ -29,6 +29,7 @@ import {
   WeatherEntity,
 } from "../data/weather";
 import { FORECAST_CHART_OVERLAYS } from "../data/forecast-chart-metrics";
+import { forecastDewPoint } from "../data/forecast-dew-point";
 import { getUvIndexColor } from "../data/uv-index";
 import {
   LineController,
@@ -472,12 +473,20 @@ export class WfcForecastChart extends LitElement {
     if (this.forecastType === "hourly" && Array.isArray(selected)) {
       for (const metric of FORECAST_CHART_OVERLAYS) {
         if (!selected.includes(metric.value)) continue;
+        let hasCalculatedValues = false;
+        const unit = getWeatherUnit(this.hass, this.weatherEntity, "temperature");
         const values = data.map((f) => {
+          if (metric.value === "dew_point") {
+            const reading = forecastDewPoint(f, unit);
+            if (reading?.source === "calculated") hasCalculatedValues = true;
+            return reading?.value ?? null;
+          }
           const value = f[metric.value];
           return typeof value === "number" && Number.isFinite(value) ? value : null;
         });
         if (values.some((v) => v !== null)) {
-          const label = this.hass.formatEntityAttributeName(this.weatherEntity, metric.value) || metric.label;
+          const name = this.hass.formatEntityAttributeName(this.weatherEntity, metric.value) || metric.label;
+          const label = hasCalculatedValues ? `${name} (calculated)` : name;
           overlays.push({
             label,
             data: values,

@@ -492,7 +492,7 @@ Default size: 8 of 12 wide, 3 rows high. Also takes `flex:`: Weather Flex sectio
 |---|---|---|---|
 | `chart_attribute` | `temperature_and_precipitation` · `apparent_temperature` · `humidity` · `pressure` · `uv_index` | `temperature_and_precipitation` | **Chart metric** — Choose the chart shown when the panel opens. Requires forecast values from your weather provider. |
 | `show_attribute_selector` | `true` / `false` | `false` | **Show metric selector** — Let viewers switch chart metrics. Only metrics supplied by the weather provider appear. |
-| `chart_overlays` | list of: `dew_point` · `apparent_temperature` | `[]` | **Temperature overlays** — Add forecast lines alongside temperature and precipitation. Missing readings leave gaps; metrics without readings are omitted. |
+| `chart_overlays` | list of: `dew_point` · `apparent_temperature` | `[]` | **Temperature overlays** — Add forecast lines alongside temperature and precipitation. Missing readings leave gaps; metrics without readings are omitted. Dew point is calculated from forecast temperature and humidity when needed. |
 | `text_scale` | number 50–200 % | `100` | **Text size** — Day and time labels, temperatures and chart figures. Separate from Scale all Panel Contents. |
 | `icon_scale` | number 50–250 % | `100` | **Icon size** — The condition icons in the forecast. |
 | `chart_scale` | number 40–200 % | `100` | **Chart height** — The temperature / precipitation chart under the icons. With Fill the panel on, the chart gives up height first so text and icons can be larger: this sets how much of the panel it keeps (about a third at 100%). |
@@ -1046,8 +1046,13 @@ your weather provider.
 
 Use `chart_overlays` to add dew point, feels like, or both alongside temperature and
 precipitation. Dew point uses a solid blue line; feels like uses a dashed purple line.
-Both share the forecast's temperature unit and axis. Missing readings leave gaps;
-metrics with no readings are omitted. Overlays appear only in the hourly temperature /
+Both share the forecast's temperature unit and axis. If the provider omits dew
+point, the card calculates it from that forecast slot's temperature and relative
+humidity using the [Magnus equation](https://www.npl.co.uk/resources/q-a/dew-point-and-relative-humidity).
+The legend marks a line containing calculated readings as **Dew point (calculated)**.
+Provider-supplied dew points take priority. Calculation supports °C, °F, and K,
+with temperatures and calculated dew points between −45 °C and 60 °C. Missing or
+invalid inputs leave gaps; metrics with no usable readings are omitted. Overlays appear only in the hourly temperature /
 precipitation view and do not affect daily forecasts or other chart views.
 
 ```yaml

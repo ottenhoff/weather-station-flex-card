@@ -207,3 +207,54 @@ test("hourly editor exposes metric selection and overlay choices", async () => {
   assert.deepEqual(Array.from(metric.selector.select.options, (o) => o.value), ["temperature_and_precipitation", "apparent_temperature", "humidity", "pressure", "uv_index"]);
   assert.equal(schema.find((f) => f.name === "show_attribute_selector").default, false);
 });
+
+test("a provider forecast with temperature and humidity gets a calculated dew point", () => {
+  // Shape observed in HA: the provider supplies humidity but no dew_point.
+  const data = [{ datetime: forecast[0].datetime, temperature: 53, humidity: 64, precipitation: 0 }];
+  const result = chart({ chart_overlays: ["dew_point"] }, "hourly", data);
+  assert.equal(result.data.datasets.length, 4);
+  const line = result.data.datasets[0];
+  assert.ok(Math.abs(line.data[0] - 41.1) < 0.1);
+  assert.match(line.label, /calculated/);
+  assert.ok(result.options.scales.yTemp.min < line.data[0]);
+  assert.equal(data[0].dew_point, undefined);
+  assert.match(renderChart({ chart_overlays: ["dew_point"] }, data).textContent, /dew_point \(calculated\)/);
+});
+
+test("calculated dew point uses the forecast temperature unit", () => {
+  for (const [unit, temperature, expected] of [["°C", 20, 9.3], ["°F", 68, 48.7], ["K", 293.15, 282.4]]) {
+    const states = { "weather.home": { ...weather, attributes: { ...weather.attributes, temperature_unit: unit } } };
+    const data = [{ datetime: forecast[0].datetime, temperature, humidity: 50 }];
+    const result = chart({ chart_overlays: ["dew_point"] }, "hourly", data, states);
+    assert.ok(Math.abs(result.data.datasets[0].data[0] - expected) < 0.1, unit);
+  }
+});
+
+test("provider dew points take priority, including zero, in mixed forecasts", () => {
+  const data = [
+    { ...forecast[0], dew_point: 0, temperature: 68, humidity: 50 },
+    { ...forecast[1], dew_point: undefined, temperature: 68, humidity: 50 },
+  ];
+  const result = chart({ chart_overlays: ["dew_point"] }, "hourly", data);
+  assert.equal(result.data.datasets[0].data[0], 0);
+  assert.ok(Math.abs(result.data.datasets[0].data[1] - 48.7) < 0.1);
+  assert.match(result.data.datasets[0].label, /calculated/);
+  const provided = chart({ chart_overlays: ["dew_point"] }, "hourly", [data[0]]);
+  assert.doesNotMatch(provided.data.datasets[0].label, /calculated/);
+});
+
+test("calculation preserves saturation and skips invalid humidity or temperature", () => {
+  const states = { "weather.home": { ...weather, attributes: { ...weather.attributes, temperature_unit: "°C" } } };
+  const saturated = chart({ chart_overlays: ["dew_point"] }, "hourly", [{ datetime: forecast[0].datetime, temperature: 0, humidity: 100 }], states);
+  assert.equal(saturated.data.datasets[0].data[0], 0);
+  for (const humidity of [0, -1, 101, undefined, null, NaN, Infinity, "50"]) {
+    const data = [{ datetime: forecast[0].datetime, temperature: 20, humidity }];
+    assert.equal(chart({ chart_overlays: ["dew_point"] }, "hourly", data, states).data.datasets.length, 3);
+  }
+  for (const temperature of [undefined, null, NaN, Infinity, -46, 61, "20"]) {
+    const data = [{ datetime: forecast[0].datetime, temperature, humidity: 50 }];
+    assert.equal(chart({ chart_overlays: ["dew_point"] }, "hourly", data, states).data.datasets.length, 3);
+  }
+  const unknownUnit = { "weather.home": { ...weather, attributes: { ...weather.attributes, temperature_unit: "unknown" } } };
+  assert.equal(chart({ chart_overlays: ["dew_point"] }, "hourly", [{ datetime: forecast[0].datetime, temperature: 20, humidity: 50 }], unknownUnit).data.datasets.length, 3);
+});
